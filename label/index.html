@@ -177,7 +177,11 @@ function parse(text){
   const ctnRe = /\b([A-Z]{3}[UJZ])\s?(\d{6})\s?-?\s?(\d)\b/gi;
   text = text.replace(ctnRe, (m, a, b, c) => { const v = (a+b+c).toUpperCase(); if (!ctn) ctn = v; return ' '; });
   const out = [], seen = new Map();
-  for (const line of text.split(/\r?\n/)){
+  let lines = text.split(/\r?\n/);
+  // 整页复制时：有表头行(SKU … CTNS/PCS/数量)就只解析表头以下，页面上方的提单号/仓库等不会被当成 SKU
+  const hdr = lines.findIndex(l => l.includes('\t') && /^\s*SKU(\s|$)/i.test(l) && /CTNS|PCS|QTY|数量/i.test(l));
+  if (hdr >= 0) lines = lines.slice(hdr + 1);
+  for (const line of lines){
     const clean = s => s.split(/[\s,，;；|\/]+/).map(t => t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9\-_]+$/g,'')).filter(Boolean);
     // 表格(Tab 分隔)只在第一个非空单元格里找 SKU，避免把"货主 PCHSP"之类的列当成 SKU
     const cells = line.split('\t').map(c => c.trim());
