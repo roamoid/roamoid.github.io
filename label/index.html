@@ -65,13 +65,17 @@
 <main>
   <section class="card">
     <h2>① 导入柜号 & SKU</h2>
-    <textarea id="src" placeholder="直接粘贴（Excel、微信、邮件均可），例如：&#10;MRSU4879830&#10;CJACWYZBK 75&#10;ABCD1234X 40&#10;&#10;也可以在本页任意位置 Ctrl+V 粘贴截图"></textarea>
-    <div class="drop" id="drop">点击选择 / 拖入 / Ctrl+V 粘贴截图，自动文字识别(OCR)<div id="imgBox"></div></div>
+    <p class="muted" style="margin:0 0 6px">推荐：在 WMS 入库页按 <b>Ctrl+A</b> 全选、<b>Ctrl+C</b> 复制，再点下面的框按 <b>Ctrl+V</b>，柜号和 SKU 会自动识别。</p>
+    <textarea id="src" placeholder="在这里粘贴（WMS 整页复制、Excel、微信、邮件均可），例如：&#10;MRSU4879830&#10;CJACWYZBK 75&#10;ABCD1234X 40"></textarea>
     <div class="status" id="status"></div>
     <div class="row">
       <button class="primary" id="btnParse">识别文字</button>
       <button id="btnClear">清空</button>
     </div>
+    <details>
+      <summary>备用：用截图识别（复制不了文字时）</summary>
+      <div class="drop" id="drop">点击选择 / 拖入 / Ctrl+V 粘贴截图，自动文字识别(OCR)<div id="imgBox"></div></div>
+    </details>
     <details>
       <summary>识别规则</summary>
       <p class="muted">• 柜号：4 个字母 + 7 位数字（如 MRSU4879830），校验位不对会提示。<br>
