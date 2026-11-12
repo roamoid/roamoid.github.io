@@ -178,11 +178,17 @@ function parse(text){
   text = text.replace(ctnRe, (m, a, b, c) => { const v = (a+b+c).toUpperCase(); if (!ctn) ctn = v; return ' '; });
   const out = [], seen = new Map();
   for (const line of text.split(/\r?\n/)){
-    const toks = line.split(/[\s\t,，;；|\/]+/).map(t => t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9\-_]+$/g,'')).filter(Boolean);
+    const clean = s => s.split(/[\s,，;；|\/]+/).map(t => t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9\-_]+$/g,'')).filter(Boolean);
+    // 表格(Tab 分隔)只在第一个非空单元格里找 SKU，避免把"货主 PCHSP"之类的列当成 SKU
+    const cells = line.split('\t').map(c => c.trim());
+    const tabbed = cells.length > 1;
+    const first = tabbed ? cells.findIndex(Boolean) : -1;
+    const toks = tabbed ? clean(cells.slice(first).join(' ')) : clean(line);
+    const skuToks = tabbed ? new Set(clean(cells[first] || '')) : null;
     let sku = null, qty = '';
     for (const t of toks){
       if (HEADER.test(t)) continue;
-      if (!sku && t.length >= 5 && /^[A-Za-z0-9][A-Za-z0-9\-_]+$/.test(t) && /[A-Za-z]/.test(t) && (/\d/.test(t) || !/[a-z]/.test(t))){ sku = t.toUpperCase(); continue; }
+      if (!sku && (!skuToks || skuToks.has(t)) && t.length >= 5 && /^[A-Za-z0-9][A-Za-z0-9\-_]+$/.test(t) && /[A-Za-z]/.test(t) && (/\d/.test(t) || !/[a-z]/.test(t))){ sku = t.toUpperCase(); continue; }
       if (sku && !qty && /^\/?\d{1,5}$/.test(t)) qty = t.replace('/','');
     }
     if (!sku) continue;
