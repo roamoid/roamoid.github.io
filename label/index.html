@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>托盘标批量打印</title>
+<style id="pageStyle"></style>
+<style>
+  :root{--bg:#f5f5f7;--card:#fff;--tx:#1d1d1f;--sub:#6e6e73;--line:#e5e5ea;--fill:#f2f2f7;--ac:#0071e3;--ac2:#0077ed;--warn:#bf4800;--ok:#1d8348;--r:16px}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--tx);background:var(--bg);padding-bottom:84px}
+  header.top{position:sticky;top:0;z-index:5;background:rgba(245,245,247,.82);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid var(--line)}
+  header.top div{max-width:860px;margin:auto;padding:12px 20px;display:flex;align-items:baseline;gap:12px}
+  header.top h1{font-size:19px;font-weight:600;margin:0;letter-spacing:.2px}
+  header.top small{color:var(--sub);font-size:13px}
+  main{display:block;padding:20px;max-width:860px;margin:auto}
+  main>section>.card+.card,main>section+section{margin-top:20px}
+  @media(max-width:880px){main{padding:14px}}
+  .card{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04)}
+  .card+.card{margin-top:20px}
+  .card h2{font-size:17px;font-weight:600;margin:0 0 4px}
+  .card .hint{color:var(--sub);font-size:13px;margin:0 0 12px}
+  textarea{width:100%;min-height:120px;resize:vertical;font:13px/1.45 ui-monospace,"SF Mono",Consolas,monospace;background:var(--fill);border:1px solid transparent;border-radius:12px;padding:12px;color:var(--tx);outline:0}
+  textarea:focus,input:focus,select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(0,113,227,.18)}
+  .drop{border:1.5px dashed #c7c7cc;border-radius:12px;padding:16px;text-align:center;color:var(--sub);margin-top:10px;cursor:pointer;font-size:13px}
+  .drop.over{border-color:var(--ac);background:#eef6ff}
+  .drop img{max-width:100%;max-height:180px;display:block;margin:8px auto 0;border-radius:8px}
+  button{font:inherit;border:0;background:var(--fill);color:var(--ac);border-radius:980px;padding:7px 16px;cursor:pointer;transition:background .15s,transform .05s}
+  button:hover{background:#e8e8ed}
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--ac);color:#fff;font-weight:500}
+  button.primary:hover{background:var(--ac2)}
+  button.big{padding:11px 30px;font-size:16px;font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ghost{background:none;color:var(--sub)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .grid2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  @media(max-width:640px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .grid2 input,.grid2 select{width:100%}
+  label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub);font-weight:500}
+  input[type=text],input[type=number],input[type=date],select{font:inherit;font-size:14px;color:var(--tx);padding:8px 10px;background:var(--fill);border:1px solid transparent;border-radius:10px;outline:0;min-width:0}
+  input[type=checkbox]{accent-color:var(--ac);width:16px;height:16px;vertical-align:-3px}
+  input.n{width:64px;text-align:center}
+  label.f.chk{font-size:13px;color:var(--tx);font-weight:400;flex-direction:row;align-items:center;gap:6px}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{padding:9px 6px;text-align:left;border-bottom:1px solid var(--line)}
+  th{font-size:12px;color:var(--sub);font-weight:500}
+  td input[type=text]{width:100%;background:transparent;padding:6px 8px}
+  td input[type=text]:hover{background:var(--fill)}
+  td input.n{background:transparent;width:48px;padding:6px 2px}
+  td button{padding:3px 11px;font-size:16px;line-height:1.3}
+  td{white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  .muted{color:var(--sub);font-size:12.5px}
+  .status{font-size:13px;color:var(--ok);min-height:20px;margin-top:8px}
+  .preview-wrap{display:flex;gap:16px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity}
+  .preview-wrap .label:first-child{margin-left:auto}
+  .preview-wrap .label:last-child{margin-right:auto}
+  .preview-wrap .label{zoom:.62;flex:none;scroll-snap-align:start;background:#fff;box-shadow:0 0 0 1px #d2d2d7,0 6px 20px rgba(0,0,0,.12)}
+  details{margin-top:14px}
+  details summary{cursor:pointer;color:var(--ac);font-size:13.5px;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"›";display:inline-block;margin-right:6px;transition:transform .15s}
+  details[open] summary::before{transform:rotate(90deg)}
+  code{background:var(--fill);padding:1px 6px;border-radius:6px;font-size:12px;word-break:break-all}
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(255,255,255,.86);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);border-top:1px solid var(--line)}
+  .bar div{max-width:860px;margin:auto;padding:12px 20px;display:flex;align-items:center;gap:16px}
+  .bar .sum{flex:1;min-width:0;font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .sum b{color:var(--tx);font-size:17px;font-weight:600;margin-right:8px}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ac);color:#fff;font-size:13px;font-weight:600;margin-right:8px;vertical-align:1px}
+
+  /* ===== 标签本体（按 Excel 托盘标比例） ===== */
+  .label{width:var(--lw);height:var(--lh);display:grid;
+    grid-template-columns:30.8% 30.8% 38.4%;grid-template-rows:30% 42% 28%;
+    border:.6mm solid #000;font-family:"DengXian","等线","Microsoft YaHei",Arial,sans-serif;color:#000;overflow:hidden;page-break-after:always;break-after:page}
+  .label>div{border:.4mm solid #000;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap;overflow:hidden;font-weight:700;line-height:1}
+  .label .ctn{grid-column:1/3}
+  .label .date{grid-column:3/4}
+  .label .k{font-weight:400}
+  .label .v{grid-column:2/4}
+  #printArea{display:none}
+  @media print{
+    body{background:#fff;padding:0}
+    header.top,main,.bar{display:none!important}
+    #printArea{display:block}
+    #printArea .label:last-child{page-break-after:auto;break-after:auto}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div><h1>托盘标批量打印</h1><small>复制 → 核对 → 打印</small></div></header>
+<main>
+  <section>
+    <div class="card">
+      <h2><span class="step">1</span>导入</h2>
+      <p class="hint">在 WMS 入库页按 Ctrl+A 全选、Ctrl+C 复制，粘贴到下面，柜号和 SKU 自动识别。</p>
+      <textarea id="src" placeholder="在这里粘贴（WMS 整页复制、Excel、微信、邮件均可），例如：&#10;MRSU4879830&#10;CJACWYZBK 75&#10;ABCD1234X 40"></textarea>
+      <div class="status" id="status"></div>
+      <div class="row" style="margin-top:4px">
+        <button class="primary" id="btnParse">识别</button>
+        <button class="ghost" id="btnClear">清空</button>
+      </div>
+      <details>
+        <summary>备用：用截图识别</summary>
+        <div class="drop" id="drop">点击选择 / 拖入 / Ctrl+V 粘贴截图（自动文字识别）<div id="imgBox"></div></div>
+      </details>
+      <details>
+        <summary>识别规则</summary>
+        <p class="muted">• 柜号：4 个字母 + 7 位数字（如 MRSU4879830），校验位不对会提示。<br>
+        • 整页复制时，只读取「SKU … CTNS/PCS/数量」表头以下的行。<br>
+        • SKU：行内 ≥5 位、含字母的编码；其后的数字当作数量（打在 NO 后面，如 <code>/75</code>）。<br>
+        • 截图识别后请核对一下（O/0、I/1 容易混）。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">2</span>标签设置</h2>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f">柜号<input type="text" id="ctn" style="text-transform:uppercase"></label>
+        <label class="f">日期<input type="date" id="date"></label>
+        <label class="f">日期格式<select id="dfmt">
+          <option value="d-MMM">11-Nov</option>
+          <option value="M/d">11/11</option>
+          <option value="yyyy/M/d">2026/11/11</option>
+          <option value="M月d日">11月11日</option>
+        </select></label>
+        <label class="f">NO 显示<select id="nomode">
+          <option value="qty">/数量（如 /75）</option>
+          <option value="seq">序号/张数（1/3…）</option>
+          <option value="blank">留空手写</option>
+        </select></label>
+      </div>
+      <label class="f chk" style="margin-top:12px"><input type="checkbox" id="autoDate" checked> 日期自动用打印当天</label>
+      <details>
+        <summary>标签尺寸 / 打印机（320 标签机）</summary>
+        <div class="row">
+          <label class="f">宽 mm<input type="number" class="n" id="lw" value="150"></label>
+          <label class="f">高 mm<input type="number" class="n" id="lh" value="100"></label>
+          <label class="f">SKU 字号 %<input type="number" class="n" id="skuScale" value="100"></label>
+          <button id="btnSaveSize">保存</button>
+        </div>
+        <p class="muted">网页无法在代码里指定打印机。想点「打印」直接从 320 出纸、不弹窗：<br>
+        1. Windows「设置 → 打印机」把 <b>320 标签机设为默认打印机</b>（关闭「让 Windows 管理默认打印机」），打印机首选项里把纸张设成与上面相同的尺寸。<br>
+        2. 给 Chrome / Edge 建专用快捷方式，目标末尾加 <code>--kiosk-printing</code>，例如：<br>
+        <code>"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing https://roamoid.github.io/label/</code><br>
+        （先关掉所有 Chrome 窗口再用它打开）。不加也能用：弹出打印窗口时选一次 320，边距选「无」，缩放 100%。</p>
+      </details>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2><span class="step">3</span>核对张数</h2>
+      <table>
+        <thead><tr><th style="width:30px">#</th><th>SKU</th><th style="width:76px">数量(NO)</th><th style="width:140px">张数</th><th style="width:36px"></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="row">
+        <button id="btnAdd">＋ 添加一行</button>
+        <span style="flex:1"></span>
+        <span class="muted">全部设为</span><input type="number" class="n" id="allN" min="0" value="1"><button id="btnAll">应用</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>预览</h2>
+      <p class="hint">每个 SKU 一张样张，实际打印按张数重复。</p>
+      <div class="preview-wrap" id="preview"></div>
+    </div>
+  </section>
+</main>
+<div class="bar"><div>
+  <span class="sum"><b id="total">共 0 张</b><span id="sum"></span></span>
+  <button class="primary big" id="btnPrint">打印</button>
+</div></div>
+<div id="printArea"></div>
+<input type="file" id="file" accept="image/*" hidden>
+
+<script>
+const $ = s => document.querySelector(s);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let rows = []; // {sku, qty, n}
+
+/* ---------- 设置持久化 ---------- */
+const cfg = Object.assign({lw:150, lh:100, skuScale:100, dfmt:'d-MMM', nomode:'qty'},
+  JSON.parse(localStorage.getItem('palletLabelCfg') || '{}'));
+['lw','lh','skuScale','dfmt','nomode'].forEach(k => $('#'+k).value = cfg[k]);
+function saveCfg(){
+  cfg.lw = +$('#lw').value || 150; cfg.lh = +$('#lh').value || 100;
+  cfg.skuScale = +$('#skuScale').value || 100;
+  cfg.dfmt = $('#dfmt').value; cfg.nomode = $('#nomode').value;
+  localStorage.setItem('palletLabelCfg', JSON.stringify(cfg));
+  applySize(); render();
+}
+function applySize(){
+  document.documentElement.style.setProperty('--lw', cfg.lw+'mm');
+  document.documentElement.style.setProperty('--lh', cfg.lh+'mm');
+  $('#pageStyle').textContent = `@page{size:${cfg.lw}mm ${cfg.lh}mm;margin:0}`;
+}
+applySize();
+// 日期：默认每次打印/预览都取当天，勾掉后可手动指定
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+function syncDate(){ const on = $('#autoDate').checked; $('#date').disabled = on; if (on) $('#date').value = today(); }
+syncDate();
+
+/* ---------- 解析 ---------- */
+// ISO 6346 柜号校验位
+function ctnCheck(c){
+  const map = {}; let v = 10;
+  for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){ if (v % 11 === 0) v++; map[ch] = v++; }
+  let sum = 0;
+  for (let i = 0; i < 10; i++){ const ch = c[i]; sum += (i < 4 ? map[ch] : +ch) * 2 ** i; }
+  return (sum % 11) % 10 === +c[10];
+}
+const HEADER = /^(SKU|QTY|PCS|CTNS?|NO\.?|数量|件数|箱数|柜号|货号|型号|品名|备注|合计|总计|TOTAL|DATE|日期|CONTAINER)$/i;
+
+function parse(text){
+  // OCR 常见：全角转半角
+  text = text.replace(/[\uFF01-\uFF5E]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\u3000/g,' ');
+  let ctn = '';
+  const ctnRe = /\b([A-Z]{3}[UJZ])\s?(\d{6})\s?-?\s?(\d)\b/gi;
+  text = text.replace(ctnRe, (m, a, b, c) => { const v = (a+b+c).toUpperCase(); if (!ctn) ctn = v; return ' '; });
+  const out = [], seen = new Map();
+  let lines = text.split(/\r?\n/);
+  // 整页复制时：有表头行(SKU … CTNS/PCS/数量)就只解析表头以下，页面上方的提单号/仓库等不会被当成 SKU
+  const hdr = lines.findIndex(l => l.includes('\t') && /^\s*SKU(\s|$)/i.test(l) && /CTNS|PCS|QTY|数量/i.test(l));
+  if (hdr >= 0) lines = lines.slice(hdr + 1);
+  for (const line of lines){
+    const clean = s => s.split(/[\s,，;；|\/]+/).map(t => t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9\-_]+$/g,'')).filter(Boolean);
+    // 表格(Tab 分隔)只在第一个非空单元格里找 SKU，避免把"货主 PCHSP"之类的列当成 SKU
+    const cells = line.split('\t').map(c => c.trim());
+    const tabbed = cells.length > 1;
+    const first = tabbed ? cells.findIndex(Boolean) : -1;
+    const toks = tabbed ? clean(cells.slice(first).join(' ')) : clean(line);
+    const skuToks = tabbed ? new Set(clean(cells[first] || '')) : null;
+    let sku = null, qty = '';
+    for (const t of toks){
+      if (HEADER.test(t)) continue;
+      if (!sku && (!skuToks || skuToks.has(t)) && t.length >= 5 && /^[A-Za-z0-9][A-Za-z0-9\-_]+$/.test(t) && /[A-Za-z]/.test(t) && (/\d/.test(t) || !/[a-z]/.test(t))){ sku = t.toUpperCase(); continue; }
+      if (sku && !qty && /^\/?\d{1,5}$/.test(t)) qty = t.replace('/','');
+    }
+    if (!sku) continue;
+    if (seen.has(sku)){ const r = seen.get(sku); if (!r.qty && qty) r.qty = qty; continue; }
+    const r = {sku, qty, n:1}; seen.set(sku, r); out.push(r);
+  }
+  return {ctn, rows: out};
+}
+function doParse(text){
+  const res = parse(text);
+  if (res.ctn){
+    $('#ctn').value = res.ctn;
+    if (!ctnCheck(res.ctn)) status('⚠ 柜号 '+res.ctn+' 校验位不对，请核对', true);
+  }
+  // 合并：保留已设置过张数的
+  const old = new Map(rows.map(r => [r.sku, r]));
+  rows = res.rows.map(r => old.has(r.sku) ? Object.assign(old.get(r.sku), r.qty ? {qty:r.qty} : {}) : r);
+  render();
+  if (!res.rows.length) status('没识别到 SKU，请检查内容', true);
+  else if (!res.ctn || ctnCheck(res.ctn)) status(`识别到 ${res.ctn ? '柜号 '+res.ctn+'，' : '（未识别到柜号），'}${rows.length} 个 SKU`);
+}
+function status(msg, warn){ const s = $('#status'); s.textContent = msg; s.style.color = warn ? '#b45309' : '#0f766e'; }
+
+/* ---------- OCR ---------- */
+let tessLoading = null;
+function loadTess(){
+  if (window.Tesseract) return Promise.resolve();
+  return tessLoading ||= new Promise((ok, err) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload = ok; s.onerror = () => err(new Error('OCR 组件加载失败，请检查网络'));
+    document.head.appendChild(s);
+  });
+}
+async function ocrImage(blob){
+  const url = URL.createObjectURL(blob);
+  $('#imgBox').innerHTML = `<img src="${url}">`;
+  try{
+    status('正在加载识别组件…');
+    await loadTess();
+    status('识别中… 0%');
+    const img = await prepImage(blob);
+    const worker = await Tesseract.createWorker('eng', 1, {
+      logger: m => { if (m.status === 'recognizing text') status('识别中… ' + Math.round(m.progress*100) + '%'); }
+    });
+    await worker.setParameters({
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_ ',
+      preserve_interword_spaces: '1'
+    });
+    const {data} = await worker.recognize(img);
+    await worker.terminate();
+    $('#src').value = data.text.trim();
+    doParse($('#src').value);
+  }catch(e){ status(e.message || String(e), true); }
+}
+// 放大 + 灰度 + 二值化，小截图识别更准
+async function prepImage(blob){
+  const bmp = await createImageBitmap(blob);
+  const k = Math.min(4, Math.max(1, 2000 / bmp.width));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+  g.drawImage(bmp, 0, 0, c.width, c.height);
+  const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  let sum = 0;
+  for (let i = 0; i < a.length; i += 4){ const y = a[i]*.299 + a[i+1]*.587 + a[i+2]*.114; a[i] = y; sum += y; }
+  const th = Math.min(200, sum / (a.length / 4) * 0.8);
+  for (let i = 0; i < a.length; i += 4){ const v = a[i] < th ? 0 : 255; a[i] = a[i+1] = a[i+2] = v; a[i+3] = 255; }
+  // 去掉表格线：黑点占比超过 60% 的整行/整列刷白，避免和文字粘连
+  const W = c.width, H = c.height;
+  const rowsDark = [], colsDark = new Array(W).fill(0);
+  for (let y = 0; y < H; y++){ let n = 0; for (let x = 0; x < W; x++){ if (!a[(y*W + x)*4]){ n++; colsDark[x]++; } } rowsDark[y] = n; }
+  for (let y = 0; y < H; y++) if (rowsDark[y] > W*.6) for (let x = 0; x < W; x++){ const i = (y*W + x)*4; a[i] = a[i+1] = a[i+2] = 255; }
+  for (let x = 0; x < W; x++) if (colsDark[x] > H*.6) for (let y = 0; y < H; y++){ const i = (y*W + x)*4; a[i] = a[i+1] = a[i+2] = 255; }
+  g.putImageData(d, 0, 0);
+  return c;
+}
+const drop = $('#drop');
+drop.onclick = () => $('#file').click();
+$('#file').onchange = e => { const f = e.target.files[0]; if (f) ocrImage(f); e.target.value = ''; };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); const f = [...e.dataTransfer.files].find(f => f.type.startsWith('image/')); if (f) ocrImage(f); };
+document.addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item){ e.preventDefault(); ocrImage(item.getAsFile()); return; }
+  if (e.target === $('#src')) setTimeout(() => doParse($('#src').value), 0);
+});
+
+/* ---------- 表格 ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function render(){
+  $('#tbody').innerHTML = rows.map((r, i) => `<tr>
+    <td>${i+1}</td>
+    <td><input type="text" data-i="${i}" data-k="sku" value="${esc(r.sku)}"></td>
+    <td><input type="text" class="n" data-i="${i}" data-k="qty" value="${esc(r.qty)}"></td>
+    <td><button data-i="${i}" data-d="-1">−</button> <input type="number" class="n" min="0" data-i="${i}" data-k="n" value="${r.n}"> <button data-i="${i}" data-d="1">+</button></td>
+    <td><button data-i="${i}" data-del title="删除">✕</button></td></tr>`).join('')
+    || `<tr><td colspan="5" class="muted" style="text-align:center;padding:20px">先在左边粘贴内容或截图</td></tr>`;
+  updateTotal(); preview();
+}
+$('#tbody').addEventListener('input', e => {
+  const t = e.target, i = +t.dataset.i, k = t.dataset.k; if (!k) return;
+  rows[i][k] = k === 'n' ? Math.max(0, parseInt(t.value) || 0) : k === 'sku' ? t.value.toUpperCase() : t.value;
+  updateTotal(); preview();
+});
+$('#tbody').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return; const i = +t.dataset.i;
+  if ('del' in t.dataset) rows.splice(i, 1);
+  else rows[i].n = Math.max(0, rows[i].n + +t.dataset.d);
+  render();
+});
+function updateTotal(){ const n = rows.reduce((a, r) => a + (r.sku ? r.n : 0), 0); $('#total').textContent = `共 ${n} 张`; $('#btnPrint').disabled = !n; }
+$('#btnAdd').onclick = () => { rows.push({sku:'', qty:'', n:1}); render(); };
+$('#btnAll').onclick = () => { const n = Math.max(0, parseInt($('#allN').value) || 0); rows.forEach(r => r.n = n); render(); };
+$('#btnParse').onclick = () => doParse($('#src').value);
+$('#btnClear').onclick = () => { $('#src').value = ''; $('#imgBox').innerHTML = ''; rows = []; $('#ctn').value = ''; status(''); render(); };
+$('#btnSaveSize').onclick = () => { saveCfg(); status('尺寸已保存'); };
+['dfmt','nomode'].forEach(id => $('#'+id).onchange = saveCfg);
+['ctn','date'].forEach(id => $('#'+id).oninput = preview);
+$('#autoDate').onchange = () => { syncDate(); preview(); };
+
+/* ---------- 标签生成 ---------- */
+function fmtDate(v){
+  if (!v) return '';
+  const [y, m, d] = v.split('-').map(Number);
+  return cfg.dfmt.replace(/yyyy|MMM|M|d/g, t => ({yyyy:y, MMM:MON[m-1], M:m, d:d}[t]));
+}
+// 字号自适应：按格子高度取上限，再用 canvas 实测文字宽度，保证一行放得下
+const _ctx = document.createElement('canvas').getContext('2d');
+function fit(text, boxWmm, boxHmm, maxRatio, bold = true){
+  const h = boxHmm * maxRatio;
+  _ctx.font = `${bold ? 700 : 400} 100px DengXian, 等线, "Microsoft YaHei", Arial, sans-serif`;
+  const wPer100 = _ctx.measureText(text || 'M').width / 100;  // 每 1 单位字号的宽度
+  const w = boxWmm * 0.9 / wPer100;
+  return Math.max(3, Math.min(h, w)).toFixed(2) + 'mm';
+}
+function labelHTML(ctn, date, sku, no){
+  const W = cfg.lw, H = cfg.lh, s = cfg.skuScale / 100;
+  const c1 = W*.616, c2 = W*.384, kW = W*.308, vW = W*.692, r1 = H*.30, r2 = H*.42, r3 = H*.28;
+  return `<div class="label">
+    <div class="ctn" style="font-size:${fit(ctn, c1, r1, .5)}">${esc(ctn)}</div>
+    <div class="date" style="font-size:${fit(date, c2, r1, .5)}">${esc(date)}</div>
+    <div class="k" style="font-size:${fit('SKU', kW, r2, .4, false)}">SKU</div>
+    <div class="v" style="font-size:${fit(sku, vW, r2, .45*s)}">${esc(sku)}</div>
+    <div class="k" style="font-size:${fit('NO', kW, r3, .5, false)}">NO</div>
+    <div class="v" style="font-size:${fit(no || 'M', vW, r3, .55)}">${esc(no)}</div>
+  </div>`;
+}
+function noText(r, idx, n){
+  if (cfg.nomode === 'seq') return `${idx}/${n}`;
+  if (cfg.nomode === 'blank') return '';
+  return r.qty ? '/' + r.qty : '';
+}
+function buildAll(limitPerSku){
+  const ctn = $('#ctn').value.trim().toUpperCase(), date = fmtDate($('#date').value);
+  let html = '';
+  for (const r of rows){
+    if (!r.sku || r.n < 1) continue;
+    const cnt = limitPerSku ? Math.min(limitPerSku, r.n) : r.n;
+    for (let i = 1; i <= cnt; i++) html += labelHTML(ctn, date, r.sku, noText(r, i, r.n));
+  }
+  return html;
+}
+function preview(){ syncDate(); $('#preview').innerHTML = buildAll(1);
+  const c = $('#ctn').value.trim().toUpperCase(), d = fmtDate($('#date').value);
+  $('#sum').textContent = [c, d].filter(Boolean).join(' · '); }
+
+$('#btnPrint').onclick = () => {
+  const total = rows.reduce((a, r) => a + (r.sku ? r.n : 0), 0);
+  if (!total) return alert('没有要打印的标签');
+  if (!$('#ctn').value.trim() && !confirm('柜号为空，仍然打印？')) return;
+  syncDate();
+  $('#printArea').innerHTML = buildAll(0);
+  setTimeout(() => { window.print(); }, 50);
+};
+window.addEventListener('afterprint', () => { $('#printArea').innerHTML = ''; });
+
+render();
+</script>
+</body>
+</html>
